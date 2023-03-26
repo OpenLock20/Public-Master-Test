@@ -1217,6 +1217,12 @@ installDefaultBlocklists() {
         return;
     fi
         echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
+        echo "https://blocklistproject.github.io/Lists/fraud.txt" >> "${adlistFile}"
+        echo "https://blocklistproject.github.io/Lists/scam.txt" >> "${adlistFile}"
+        echo "https://blocklistproject.github.io/Lists/malware.txt" >> "${adlistFile}"
+        echo "https://blocklistproject.github.io/Lists/tracking.txt" >> "${adlistFile}"
+        echo "https://blocklistproject.github.io/Lists/phishing.txt" >> "${adlistFile}"
+        echo "https://blocklistproject.github.io/Lists/ads.txt" >> "${adlistFile}"
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
