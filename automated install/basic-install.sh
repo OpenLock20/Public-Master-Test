@@ -1189,6 +1189,12 @@ chooseBlocklists() {
             # If they chose yes,
             printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
             echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
+            echo "https://blocklistproject.github.io/Lists/fraud.txt" >> "${adlistFile}"
+            echo "https://blocklistproject.github.io/Lists/scam.txt" >> "${adlistFile}"
+            echo "https://blocklistproject.github.io/Lists/malware.txt" >> "${adlistFile}"
+            echo "https://blocklistproject.github.io/Lists/tracking.txt" >> "${adlistFile}"
+            echo "https://blocklistproject.github.io/Lists/phishing.txt" >> "${adlistFile}"
+            echo "https://blocklistproject.github.io/Lists/ads.txt" >> "${adlistFile}"
             ;;
         "${DIALOG_CANCEL}")
             # If they chose no,
