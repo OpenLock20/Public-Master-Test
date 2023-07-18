@@ -1,40 +1,7 @@
-#!/usr/bin/env bash
-# shellcheck disable=SC1090
 
-# Pi-hole: A black hole for Internet advertisements
-# (c) Pi-hole (https://pi-hole.net)
-# Network-wide ad blocking via your own hardware.
-#
-# Installs and Updates Pi-hole
-#
-# This file is copyright under the latest version of the EUPL.
-# Please see LICENSE file for your rights under this license.
-
-# pi-hole.net/donate
-#
-# Install with this command (from your Linux machine):
-#
-# curl -sSL https://install.pi-hole.net | bash
-
-# -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
-# We do not want users to end up with a partially working install, so we exit the script
-# instead of continuing the installation with something broken
 set -e
-
-# Append common folders to the PATH to ensure that all basic commands are available.
-# When using "su" an incomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
 export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
-######## VARIABLES #########
-# For better maintainability, we store as much information that can change in variables
-# This allows us to make a change in one place that can propagate to all instances of the variable
-# These variables should all be GLOBAL variables, written in CAPS
-# Local variables will be in lowercase and will exist only within functions
-# It's still a work in progress, so you may see some variance in this guideline until it is complete
-
-# Dialog result codes
-# dialog code values can be set by environment variables, we only override if
-# the env var is not set or empty.
 : "${DIALOG_OK:=0}"
 : "${DIALOG_CANCEL:=1}"
 : "${DIALOG_ESC:=255}"
@@ -69,26 +36,27 @@ webroot="/var/www/html"
 
 # We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
 # AdminLTE is used to set up the Web admin interface. / Update test 1
-# Pi-hole contains various setup scripts and files which are critical to the installation.
-# Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
+# SafeLock contains various setup scripts and files which are critical to the installation.
+# Search for "SAFELOCK_LOCAL_REPO" in this file to see all such scripts.
 # Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
-webInterfaceGitUrl="https://github.com/OpenLock20/Public-Test-Inter.git"
+webInterfaceGitUrl="https://github.com/unpluggedREVAN/Safelock-Interface-Test.git"
 webInterfaceDir="${webroot}/admin"
-piholeGitUrl="https://github.com/OpenLock20/Public-Master-Test.git"
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
-# List of pihole scripts, stored in an array
-PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
+safelockGitUrl="https://github.com/pi-hole/pi-hole.git"
+SAFELOCK_LOCAL_REPO="/etc/.pihole"
+
+SAFELOCK_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This directory is where the Pi-hole scripts will be installed
-PI_HOLE_INSTALL_DIR="/opt/pihole"
-PI_HOLE_CONFIG_DIR="/etc/pihole"
-PI_HOLE_BIN_DIR="/usr/local/bin"
+SAFELOCK_INSTALL_DIR="/opt/pihole"
+SAFELOCK_CONFIG_DIR="/etc/pihole"
+SAFELOCK_BIN_DIR="/usr/local/bin"
+SAFELOCK_BLOCKPAGE_DIR="${webroot}/pihole"
 FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 if [ -z "$useUpdateVars" ]; then
-    useUpdateVars=false
-fi
 
+fi
 adlistFile="/etc/pihole/adlists.list"
-# Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
+adlistFile="/etc/pihole/adlists.list"
+# SafeLock needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
 IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
@@ -139,29 +107,49 @@ else
 fi
 
 # A simple function that just echoes out our logo in ASCII format
-# This lets users know that it is a Pi-hole, LLC product
-show_ascii_berry() {
+# This lets users know that it is a SafeLock, OpenLock product
+show_ascii_safelock() {
     echo -e "
-        ${COL_LIGHT_GREEN}.;;,.
-        .ccccc:,.
-         :cccclll:.      ..,,
-          :ccccclll.   ;ooodc
-           'ccll:;ll .oooodc
-             .;cll.;;looo:.
-                 ${COL_LIGHT_RED}.. ','.
-                .',,,,,,'.
-              .',,,,,,,,,,.
-            .',,,,,,,,,,,,....
-          ....''',,,,,,,'.......
-        .........  ....  .........
-        ..........      ..........
-        ..........      ..........
-        .........  ....  .........
-          ........,,,,,,,'......
-            ....',,,,,,,,,,,,.
-               .',,,,,,,,,'.
-                .',,,,,,'.
-                  ..'''.${COL_NC}
+        ${COL_WHITE}
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWKkolcc:cldkXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMXd;.          .;xXMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWk'  .,lxkOOkxl,   ,kWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWd.  ;OWMMMMMMMMNk,  .xWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMk.  cXMMMMMMMMMMMMX:  .OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWo  .kMMMMMMMMMMMMMMx.  dMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWl  '0MMMMMMMMMMMMMMk.  oMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWl  '0MMMMMMMMMMMMMMk.  oMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWl  'OMMMMMMMMMMMMMMK:.,OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWl  .k0kdolcccclodkKNNKXMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWl   ..            .':dKWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMWKOxdddxOKWMMMMMMMMMMMMMMMMMMMMMMMWXOkxkKMMMMMMMMMMMMMMMMMMMMMXx.   .,codkOOOkxdl:'   .:kNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWKkxONMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMXd,.       .,oKMMMMMMMMMMMMMMMMMMMMWx'    lWMMMMMMMMMMMMMMMMMMNk,   ,d0NMMMMMMMMMMMMNOo'   ;OWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNc  '0MMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMK;  .;ldddl:..:XMMMMMMMMMMMMMMMMMMMMK,  .ld0MMMMMMMMMMMMMMMMMMXc.  ;ONMMMMMMMMMMMMMMMMMMNx'  .oNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNc  '0MMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMd  .dWMMMMMWNKNMMMMMMWNKOOO0XWMMMMWXx.  ,OKNMMMMMWK0OO0NMMMMMK:  .dNMMMMMXo;c0WMMMMMMMMMMMXl.  lNMMMMNK0OO0XWMMMMMMMMMWX0OOOKNWMMMNc  '0MMMMNK0KNMMMMMMMMMMMM
+MMMMMMMMMMMMd   cKWMMMMMMMMMMMMWk:'.   ..;xNMMNc.    ..dWMMKo,.   .'c0WMNl  .xWMMMMMM0'  cXWMMMMMMMMMMMNl  .dWW0l'.   ..;dXMMMMMXd;..   .':kNMNc  '0MMWk,..cKMMMMMMMMMMMM
+MMMMMMMMMMMMK;   .,:codkKWMMMMMWO:,:lol;.  cNMWO:.  .lo0MMO'  .cll;  .xWO.  lNMMMMMMM0'  cXWMMMMMMMMMMMMX;  ,Kk.  .;c:,   :KMMMK;   ':c:,.'xNMNc  '0MKc. .dNMMMMMMMMMMMMM
+MMMMMMMMMMMMMNxc,..     .,dXMMMMMWWWWWWNo  .OMMM0'  :NMMMX:  ;KMMMNo  ,0o  .kMMMMMMMM0'  cXWMMMMMMMMMMMMMd  .d:  .kWMMNo   dMMWl  .oNMMMWKXMMMNc  'Ok'  :KMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMWXKOkdl,   lNMMNOl:,,,,,.  .kMMM0'  :NMMM0'  .:::::'  .xl  '0MMMMMMMM0'  cXWMMMMMMMMMMMMMx. .l,  :NMMMMO.  lWMN:  '0MMMMMMMMMMNc  .'.   cXMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMX;  '0MWo. .,cccc,  .kMMM0'  :NMMM0'  .;::;;;:;c0d  .kMMMMMMMM0'  cXWMMMMMMMMMMMMMo  .o,  ;XMMMMO.  lWMN:  '0MMMMMMMMMMNc    .:.  :KMMMMMMMMMMMMMM
+MMMMMMMMMMMWOcoOXWMMMWXx.  ;XMK,  cNMMMMx. .kMMM0'  :NMMMX:  ,OWMMWX0NMMO.  cNMMMMMMM0'  'oddddddxKMMMMMK;  ;0c  .xNMWXc  .xMMWo   cKWMWXk0WMMNc   :0WO'  ;0MMMMMMMMMMMMM
+MMMMMMMMMMMK;   .,;;;,.   ,0WMNl  .:oooc.  .kMMM0'  :NMMMM0,  .,::;..,OWWo  .oNMMMMMMK;          .dMMMMXc  .xW0,   ';,.   cXMMMXc   .,;,. .oNMNc  '0MMMO'  'OWMMMMMMMMMMM
+MMMMMMMMMMMWKxl;'.....';lkNMMMMXd;.....:c,.;0MMMKc..oNMMMMMXx:'....':dKWMXc  .lXMMMMMWKxdxxxxxxxxONMMW0:  .dNMMXd:'....,ckNMMMMMNkc,.....;lOWMWo..:KMMMM0:..cKMMMMMMMMMMM
+MMMMMMMMMMMMMMMWWXXKKXNWMMMMMMMMMWNXXXNWWNXNWMMMWNXXNMMMMMMMMMWXXXXWMMMMMMNo.  'xXMMMMMMMMMMMMMMMMMWKo.  .xWMMMMMMNXXXXWMMMMMMMMMMMWXXXXNWMMMMMNXXNWMMMMMWXXXWMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWO;.  'lkXWMMMMMMMMMMNKx:.  .cKWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNOc.   .,cloddddol:,.   'l0WMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMXkl;..          ..;oONMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX0kxdoooodxO0NWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+        ${COL_NC}
 "
 }
 
@@ -174,7 +162,7 @@ is_command() {
 }
 
 os_check() {
-    if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
+    if [ "$SAFELOCK_SKIP_OS_CHECK" != true ]; then
         # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
         # and determines whether or not the script is running on one of those systems
         local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
@@ -234,7 +222,7 @@ os_check() {
                 printf "  %b %bRetrieval of supported OS list failed. %s. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${errStr}" "${COL_NC}"
                 printf "      %bUnable to determine if the detected OS (%s %s) is supported%b\\n" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
                 printf "      Possible causes for this include:\\n"
-                printf "        - Firewall blocking certain DNS lookups from Pi-hole device\\n"
+                printf "         - Firewall blocking certain DNS lookups from SafeLock\\n"
                 printf "        - ns1.pi-hole.net being blocked (required to obtain TXT record from versions.pi-hole.net containing supported operating systems)\\n"
                 printf "        - Other internet connectivity issues\\n"
             else
@@ -247,11 +235,11 @@ os_check() {
             printf "      If you wish to attempt to continue anyway, you can try one of the following commands to skip this check:\\n"
             printf "\\n"
             printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
-            printf "             %bcurl -sSL https://install.pi-hole.net | sudo PIHOLE_SKIP_OS_CHECK=true bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "             %bcurl -sSL https://install.pi-hole.net | sudo SAFELOCK_SKIP_OS_CHECK=true bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "\\n"
-            printf "           If you are seeing this message after having run pihole -up:\\n"
-            printf "             %bsudo PIHOLE_SKIP_OS_CHECK=true pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
-            printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
+            printf "           If you are seeing this message after having run safelock -up:\\n"
+            printf "             %bsudo SAFELOCK_SKIP_OS_CHECK=true SafeLock -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "           (In this case, your previous run of SafeLock -up will have already updated the local repository)\\n"
             printf "\\n"
             printf "      It is possible that the installation will still fail at this stage due to an unsupported configuration.\\n"
             printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
@@ -263,7 +251,7 @@ os_check() {
             printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bSAFELOCK_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
 }
 
@@ -330,13 +318,13 @@ package_manager_detect() {
         # Packages required to run this install script (stored as an array)
         INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
-        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq)
+        SAFELOCK_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq)
         # Packages required for the Web admin interface (stored as an array)
         # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-        PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
+        SAFELOCK_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
         # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
         if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
-            PIHOLE_WEB_DEPS+=("${phpVer}-json")
+            SAFELOCK_DEPS+=("${phpVer}-json")
         fi
         # The Web server user,
         LIGHTTPD_USER="www-data"
@@ -360,8 +348,8 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
-        PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
+        SAFELOCK_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
+        SAFELOCK_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
         LIGHTTPD_USER="lighttpd"
         LIGHTTPD_GROUP="lighttpd"
         LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -577,34 +565,20 @@ get_available_interfaces() {
 # A function for displaying the dialogs the user sees when first running the installer
 welcomeDialogs() {
     # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
-    dialog --no-shadow --clear --keep-tite \
-        --backtitle "Welcome" \
-            --title "Pi-hole Automated Installer" \
-            --msgbox "\\n\\nThis installer will transform your device into a network-wide ad blocker!" \
-            "${r}" "${c}" \
-            --and-widget --clear \
-        --backtitle "Support Pi-hole" \
-            --title "Open Source Software" \
-            --msgbox "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" \
-            "${r}" "${c}" \
-            --and-widget --clear \
-        --colors \
-            --backtitle "Initiating network interface" \
-            --title "Static IP Needed" \
-            --no-button "Exit" --yes-button "Continue" \
-            --defaultno \
-            --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
-\\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
-Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
-Please continue when the static addressing has been configured."\
-            "${r}" "${c}" && result=0 || result="$?"
+    whiptail --msgbox --backtitle "Welcome" --title "SafeLock automated installer" "\\n\\nThis installer will transform your device into a network-wide ad blocker!" "${r}" "${c}"
 
-         case "${result}" in
-             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %b Installer exited at static IP message.\\n" "${INFO}"
-                exit 1
-                ;;
-         esac
+    # Explain the need for a static address
+    if whiptail --defaultno --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\\n\\nThe SafeLock is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+
+IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
+
+Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
+        #Nothing to do, continue
+        echo
+    else
+        printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+        exit 1
+    fi
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
@@ -620,7 +594,7 @@ chooseInterface() {
     # If there is one interface,
     if [[ "${interfaceCount}" -eq 1 ]]; then
         # Set it as the interface to use since there is no other option
-        PIHOLE_INTERFACE="${availableInterfaces}"
+        SAFELOCK_INTERFACE="${availableInterfaces}"
     # Otherwise,
     else
         # Set status for the first entry to be selected
@@ -635,7 +609,7 @@ chooseInterface() {
         done
         # shellcheck disable=SC2086
         # Disable check for double quote here as we are passing a string with spaces
-        PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
+        SAFELOCK_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
             --radiolist "Choose An Interface (press space to toggle selection)" \
             ${r} ${c} "${interfaceCount}" ${interfacesList})
@@ -649,7 +623,7 @@ chooseInterface() {
                 ;;
         esac
 
-        printf "  %b Using interface: %s\\n" "${INFO}" "${PIHOLE_INTERFACE}"
+        printf "  %b Using interface: %s\\n" "${INFO}" "${SAFELOCK_INTERFACE}"
     fi
 }
 
@@ -836,12 +810,12 @@ setDHCPCD() {
     # If it's not,
     else
         # we can append these lines to dhcpcd.conf to enable a static IP
-        echo "interface ${PIHOLE_INTERFACE}
+        echo "interface ${SAFELOCK_INTERFACE}
         static ip_address=${IPV4_ADDRESS}
         static routers=${IPv4gw}
-        static domain_name_servers=${PIHOLE_DNS_1} ${PIHOLE_DNS_2}" | tee -a /etc/dhcpcd.conf >/dev/null
+        static domain_name_servers=${SAFELOCK_DNS_1} ${SAFELOCK_DNS_2}" | tee -a /etc/dhcpcd.conf >/dev/null
         # Then use the ip command to immediately set the new address
-        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+        ip addr replace dev "${SAFELOCK_INTERFACE}" "${IPV4_ADDRESS}"
         # Also give a warning that the user may need to reboot their system
         printf "  %b Set IP address to %s\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
         printf "  %b You may need to restart after the install is complete\\n" "${INFO}"
@@ -936,18 +910,18 @@ setDNS() {
         until [[ "${DNSSettingsCorrect}" = True ]]; do
             # Signal value, to be used if the user inputs an invalid IP address
             strInvalid="Invalid"
-            if [[ ! "${PIHOLE_DNS_1}" ]]; then
-                if [[ ! "${PIHOLE_DNS_2}" ]]; then
+            if [[ ! "${SAFELOCK_DNS_1}" ]]; then
+                if [[ ! "${SAFELOCK_DNS_2}" ]]; then
                     # If the first and second upstream servers do not exist, do not prepopulate an IP address
                     prePopulate=""
                 else
                     # Otherwise, prepopulate the dialogue with the appropriate DNS value(s)
-                    prePopulate=", ${PIHOLE_DNS_2}"
+                    prePopulate=", ${SAFELOCK_DNS_2}"
                 fi
-            elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
-                prePopulate="${PIHOLE_DNS_1}"
-            elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
-                prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
+            elif  [[ "${SAFELOCK_DNS_1}" ]] && [[ ! "${SAFELOCK_DNS_2}" ]]; then
+                prePopulate="${SAFELOCK_DNS_1}"
+            elif [[ "${SAFELOCK_DNS_1}" ]] && [[ "${SAFELOCK_DNS_2}" ]]; then
+                prePopulate="${SAFELOCK_DNS_1}, ${SAFELOCK_DNS_2}"
             fi
 
             # Prompt the user to enter custom upstream servers
@@ -971,33 +945,33 @@ If you want to specify a port other than 53, separate it with a hash.\
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
 
             # Separate the user input into the two DNS values (separated by a comma)
-            printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
-            printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
+            printf -v SAFELOCK_DNS_1 "%s" "${piholeDNS%%,*}"
+            printf -v SAFELOCK_DNS_2 "%s" "${piholeDNS##*,}"
 
-            # If the first DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_1="Invalid"
-            if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
-                PIHOLE_DNS_1=${strInvalid}
+            # If the first DNS value is invalid or empty, this if statement will be true and we will set SAFELOCK_DNS_1="Invalid"
+            if ! valid_ip "${SAFELOCK_DNS_1}" || [[ ! "${SAFELOCK_DNS_1}" ]]; then
+                SAFELOCK_DNS_1=${strInvalid}
             fi
-            # If the second DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_2="Invalid"
-            if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
-                PIHOLE_DNS_2=${strInvalid}
+            # If the second DNS value is invalid or empty, this if statement will be true and we will set SAFELOCK_DNS_2="Invalid"
+            if ! valid_ip "${SAFELOCK_DNS_2}" && [[ "${SAFELOCK_DNS_2}" ]]; then
+                SAFELOCK_DNS_2=${strInvalid}
             fi
             # If either of the DNS servers are invalid,
-            if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+            if [[ "${SAFELOCK_DNS_1}" == "${strInvalid}" ]] || [[ "${SAFELOCK_DNS_2}" == "${strInvalid}" ]]; then
                 # explain this to the user,
                 dialog --no-shadow --keep-tite \
                     --title "Invalid IP Address(es)" \
                     --backtitle "Invalid IP" \
                     --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again.\
-\\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
+\\n\\nInvalid IPs: ${SAFELOCK_DNS_1}, ${SAFELOCK_DNS_2}" \
                     "${r}" "${c}"
 
                 # set the variables back to nothing,
-                if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
-                    PIHOLE_DNS_1=""
+                if [[ "${SAFELOCK_DNS_1}" == "${strInvalid}" ]]; then
+                    SAFELOCK_DNS_1=""
                 fi
-                if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
-                    PIHOLE_DNS_2=""
+                if [[ "${SAFELOCK_DNS_2}" == "${strInvalid}" ]]; then
+                    SAFELOCK_DNS_2=""
                 fi
                 # and continue the loop.
                 DNSSettingsCorrect=False
@@ -1005,7 +979,7 @@ If you want to specify a port other than 53, separate it with a hash.\
                 dialog --no-shadow --no-collapse --keep-tite \
                     --backtitle "Specify Upstream DNS Provider(s)" \
                     --title "Upstream DNS Provider(s)" \
-                    --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t'"${PIHOLE_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${PIHOLE_DNS_2}" \
+                    --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t'"${SAFELOCK_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${SAFELOCK_DNS_2}" \
                     "${r}" "${c}" && result=0 || result=$?
 
                 case ${result} in
@@ -1032,8 +1006,8 @@ If you want to specify a port other than 53, separate it with a hash.\
             DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
             if [[ "${DNSchoices}" == "${DNSName}" ]]
             then
-                PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
-                PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
+                SAFELOCK_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
+                SAFELOCK_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
                 break
             fi
         done
@@ -1042,8 +1016,8 @@ If you want to specify a port other than 53, separate it with a hash.\
     fi
 
     # Display final selection
-    local DNSIP=${PIHOLE_DNS_1}
-    [[ -z ${PIHOLE_DNS_2} ]] || DNSIP+=", ${PIHOLE_DNS_2}"
+    local DNSIP=${SAFELOCK_DNS_1}
+    [[ -z ${SAFELOCK_DNS_2} ]] || DNSIP+=", ${SAFELOCK_DNS_2}"
     printf "  %b Using upstream DNS: %s (%s)\\n" "${INFO}" "${DNSchoices}" "${DNSIP}"
 }
 
@@ -1104,7 +1078,7 @@ setPrivacyLevel() {
 setAdminFlag() {
     # Similar to the logging function, ask what the user wants
     dialog --no-shadow --keep-tite \
-        --backtitle "Pihole Installation" \
+        --backtitle "SafeLock Installation" \
         --title "Admin Web Interface" \
         --yesno "\\n\\nDo you want to install the Admin Web Interface?" \
         "${r}" "${c}" && result=0 || result=$?
@@ -1134,9 +1108,9 @@ setAdminFlag() {
     if [[ "${INSTALL_WEB_INTERFACE}" == true && "${INSTALL_WEB_SERVER}" == true ]]; then
         # Get list of required PHP modules, excluding base package (common) and handler (cgi)
         local i php_modules
-        for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
+        for i in "${SAFELOCK_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
         dialog --no-shadow --keep-tite \
-            --backtitle "Pi-hole Installation" \
+            --backtitle "SafeLock Installation" \
             --title "Web Server" \
             --yesno "\\n\\nA web server is required for the Admin Web Interface.\
 \\n\\nDo you want to install lighttpd and the required PHP modules?\
@@ -1174,44 +1148,48 @@ chooseBlocklists() {
     if [[ -f "${adlistFile}" ]]; then
         mv "${adlistFile}" "${adlistFile}.old"
     fi
-    # Let user select (or not) blocklists
-    dialog --no-shadow --keep-tite \
-        --backtitle "Pi-hole Installation" \
-        --title "Blocklists" \
-        --yesno "\\nPi-hole relies on third party lists in order to block ads.\
-\\n\\nYou can use the suggestion below, and/or add your own after installation.\
-\\n\\nSelect 'Yes' to include:\
-\\n\\nStevenBlack's Unified Hosts List" \
-        "${r}" "${c}" && result=0 || result=$?
+    # Let user select (or not) blocklists via a checklist
+    cmd=(whiptail --separate-output --checklist "SafeLock relies on third party lists in order to block ads.\\n\\nYou can use the suggestion below, and/or add your own after installation\\n\\nTo deselect the suggested list, use spacebar" "${r}" "${c}" 5)
+    # In an array, show the options available (all off by default):
+    options=(OpenLock "OpenLock Recomendations" on)
 
-    case ${result} in
-        "${DIALOG_OK}")
-            # If they chose yes,
-            printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
-            echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
-            echo "https://blocklistproject.github.io/Lists/fraud.txt" >> "${adlistFile}"
-            echo "https://blocklistproject.github.io/Lists/scam.txt" >> "${adlistFile}"
-            echo "https://blocklistproject.github.io/Lists/malware.txt" >> "${adlistFile}"
-            echo "https://blocklistproject.github.io/Lists/tracking.txt" >> "${adlistFile}"
-            echo "https://blocklistproject.github.io/Lists/phishing.txt" >> "${adlistFile}"
-            echo "https://blocklistproject.github.io/Lists/ads.txt" >> "${adlistFile}"
-            ;;
-        "${DIALOG_CANCEL}")
-            # If they chose no,
-            printf "  %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
-            ;;
-        "${DIALOG_ESC}")
-            # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
-            ;;
-    esac
+    # In a variable, show the choices available; exit if Cancel is selected
+    choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
+    # Add all selected choices to the lists file
+    for choice in ${choices}
+    do
+        appendToListsFile "${choice}"
+    done
     # Create an empty adList file with appropriate permissions.
     if [ ! -f "${adlistFile}" ]; then
         install -m 644 /dev/null "${adlistFile}"
     else
         chmod 644 "${adlistFile}"
     fi
+}
+
+# Accept a string parameter, it must be one of the default lists
+# This function saves duplication between chooseBlocklists and installDefaultBlocklists
+appendToListsFile() {
+    case $1 in
+        OpenLock  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
+                        echo "https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt" >> "${adlistFile}"
+                        echo "https://cyberhost.uk/malware-blocklists-pi-hole-adguard-home/" >> "${adlistFile}"
+                        echo "https://avoidthehack.com/best-pihole-blocklists" >> "${adlistFile}"
+                        echo "https://github.com/topics/pihole-blocklists" >> "${adlistFile}"
+                        echo "https://trainax.github.io/PiHoleLists/" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/abuse.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/drugs.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/crypto.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/fraud.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/gambling.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/malware.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/phishing.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/porn.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/ransomware.txt" >> "${adlistFile}"
+                        echo "https://blocklistproject.github.io/Lists/redirect.txt" >> "${adlistFile}"
+                        echo "https://ewpratten.retrylife.ca/youtube_ad_blocklist/hosts.ipv4.txt" >> "${adlistFile}";;
+    esac
 }
 
 # Used only in unattended setup
@@ -1222,13 +1200,7 @@ installDefaultBlocklists() {
     if [[ -f "${adlistFile}" ]]; then
         return;
     fi
-        echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
-        echo "https://blocklistproject.github.io/Lists/fraud.txt" >> "${adlistFile}"
-        echo "https://blocklistproject.github.io/Lists/scam.txt" >> "${adlistFile}"
-        echo "https://blocklistproject.github.io/Lists/malware.txt" >> "${adlistFile}"
-        echo "https://blocklistproject.github.io/Lists/tracking.txt" >> "${adlistFile}"
-        echo "https://blocklistproject.github.io/Lists/phishing.txt" >> "${adlistFile}"
-        echo "https://blocklistproject.github.io/Lists/ads.txt" >> "${adlistFile}"
+    appendToListsFile OpenLock
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1238,10 +1210,10 @@ version_check_dnsmasq() {
     local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
     local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
     local dnsmasq_pihole_id_string2="# Dnsmasq config for Pi-hole's FTLDNS"
-    local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-    local dnsmasq_pihole_01_source="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
+    local dnsmasq_original_config="${SAFELOCK_LOCAL_REPO}/advanced/dnsmasq.conf.original"
+    local dnsmasq_pihole_01_source="${SAFELOCK_LOCAL_REPO}/advanced/01-pihole.conf"
     local dnsmasq_pihole_01_target="/etc/dnsmasq.d/01-pihole.conf"
-    local dnsmasq_rfc6761_06_source="${PI_HOLE_LOCAL_REPO}/advanced/06-rfc6761.conf"
+    local dnsmasq_rfc6761_06_source="${SAFELOCK_LOCAL_REPO}/advanced/06-rfc6761.conf"
     local dnsmasq_rfc6761_06_target="/etc/dnsmasq.d/06-rfc6761.conf"
 
     # If the dnsmasq config file exists
@@ -1281,14 +1253,14 @@ version_check_dnsmasq() {
     printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_pihole_01_target}"
     # Add settings with the GLOBAL DNS variables that we populated earlier
     # First, set the interface to listen on
-    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "interface" "$PIHOLE_INTERFACE"
-    if [[ "${PIHOLE_DNS_1}" != "" ]]; then
+    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "interface" "$SAFELOCK_INTERFACE"
+    if [[ "${SAFELOCK_DNS_1}" != "" ]]; then
         # then add in the primary DNS server.
-        addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "server" "$PIHOLE_DNS_1"
+        addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "server" "$SAFELOCK_DNS_1"
     fi
     # Ditto if DNS2 is not empty
-    if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        addKey "${dnsmasq_pihole_01_target}" "server=$PIHOLE_DNS_2"
+    if [[ "${SAFELOCK_DNS_2}" != "" ]]; then
+        addKey "${dnsmasq_pihole_01_target}" "server=$SAFELOCK_DNS_2"
     fi
 
     # Set the cache size
@@ -1329,27 +1301,27 @@ clean_existing() {
 # Install the scripts from repository to their various locations
 installScripts() {
     # Local, named variables
-    local str="Installing scripts from ${PI_HOLE_LOCAL_REPO}"
+    local str="Installing scripts from ${SAFELOCK_LOCAL_REPO}"
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Clear out script files from Pi-hole scripts directory.
-    clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
+    clean_existing "${SAFELOCK_INSTALL_DIR}" "${SAFELOCK_FILES[@]}"
 
     # Install files from local core repository
-    if is_repo "${PI_HOLE_LOCAL_REPO}"; then
+    if is_repo "${SAFELOCK_LOCAL_REPO}"; then
         # move into the directory
-        cd "${PI_HOLE_LOCAL_REPO}"
+        cd "${SAFELOCK_LOCAL_REPO}"
         # Install the scripts by:
         #  -o setting the owner to the user
         #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
         #
         # This first one is the directory
-        install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+        install -o "${USER}" -Dm755 -d "${SAFELOCK_INSTALL_DIR}"
         # The rest are the scripts Pi-hole needs
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
+        install -o "${USER}" -Dm755 -t "${SAFELOCK_INSTALL_DIR}" gravity.sh
+        install -o "${USER}" -Dm755 -t "${SAFELOCK_INSTALL_DIR}" ./advanced/Scripts/*.sh
+        install -o "${USER}" -Dm755 -t "${SAFELOCK_INSTALL_DIR}" ./automated\ install/uninstall.sh
+        install -o "${USER}" -Dm755 -t "${SAFELOCK_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
         install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1357,14 +1329,14 @@ installScripts() {
     else
         # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}"  "${CROSS}" "${str}"
-        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${SAFELOCK_LOCAL_REPO}" "${COL_NC}"
         return 1
     fi
 }
 
-# Install the configs from PI_HOLE_LOCAL_REPO to their various locations
+# Install the configs from SAFELOCK_LOCAL_REPO to their various locations
 installConfigs() {
-    printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
+    printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${SAFELOCK_LOCAL_REPO}"
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
 
@@ -1377,7 +1349,7 @@ installConfigs() {
     # Install template file if it does not exist
     if [[ ! -r "${FTL_CONFIG_FILE}" ]]; then
         install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
-        if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${FTL_CONFIG_FILE}" &>/dev/null; then
+        if ! install -T -o pihole -m 664 "${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${FTL_CONFIG_FILE}" &>/dev/null; then
             printf "  %b Error: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
@@ -1394,7 +1366,7 @@ installConfigs() {
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
     # Follow debhelper logic, which checks for /run/systemd/system to derive whether systemd is the init system
     if [[ -d '/run/systemd/system' ]]; then
-        install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
+        install -T -m 0644 "${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
         if [[ -e '/etc/init.d/pihole-FTL' ]]; then
@@ -1405,16 +1377,16 @@ installConfigs() {
         # Load final service
         systemctl daemon-reload
     else
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+        install -T -m 0755 "${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
     fi
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
+    install -T -m 0755 "${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${SAFELOCK_INSTALL_DIR}/pihole-FTL-prestart.sh"
+    install -T -m 0755 "${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${SAFELOCK_INSTALL_DIR}/pihole-FTL-poststop.sh"
 
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         if grep -q -F "FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
             # Attempt to preserve backwards compatibility with older versions
-            install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
+            install -D -m 644 -T ${SAFELOCK_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
             # Make the directories if they do not exist and set the owners
             mkdir -p /run/lighttpd
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
@@ -1425,7 +1397,7 @@ installConfigs() {
         fi
         # Copy the config file to include for pihole admin interface
         if [[ -d "/etc/lighttpd/conf.d" ]]; then
-            install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf /etc/lighttpd/conf.d/pihole-admin.conf
+            install -D -m 644 -T ${SAFELOCK_LOCAL_REPO}/advanced/pihole-admin.conf /etc/lighttpd/conf.d/pihole-admin.conf
             if grep -q -F 'include "/etc/lighttpd/conf.d/pihole-admin.conf"' "${lighttpdConfig}"; then
                 :
             else
@@ -1443,7 +1415,7 @@ installConfigs() {
             fi
         elif [[ -d "/etc/lighttpd/conf-available" ]]; then
             conf=/etc/lighttpd/conf-available/15-pihole-admin.conf
-            install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf $conf
+            install -D -m 644 -T ${SAFELOCK_LOCAL_REPO}/advanced/pihole-admin.conf $conf
             # disable server.modules += ( ... ) in $conf to avoid module dups
             # (needed until Debian 10 no longer supported by pi-hole)
             # (server.modules duplication is ignored in lighttpd 1.4.56+)
@@ -1491,8 +1463,8 @@ install_manpage() {
         install -d -m 755 /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
+    install -D -m 644 -T ${SAFELOCK_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D -m 644 -T ${SAFELOCK_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
 
     # remove previously installed "pihole-FTL.conf.5" man page
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
@@ -1714,14 +1686,14 @@ install_dependent_packages() {
 }
 
 # Install the Web interface dashboard
-installPiholeWeb() {
+installSafeLockWeb() {
     # Install Sudoers file
     local str="Installing sudoer file"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Make the .d directory if it doesn't exist,
     install -d -m 755 /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
+    install -m 0640 ${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: ${PI_HOLE_BIN_DIR}/pihole" >> /etc/sudoers.d/pihole
 
@@ -1743,7 +1715,7 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     # File must not be world or group writeable and must be owned by root
-    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    install -D -m 644 -T -o root -g root ${SAFELOCK_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1830,9 +1802,9 @@ create_pihole_user() {
 finalExports() {
     # set or update the variables in the file
 
-    addOrEditKeyValPair "${setupVars}" "PIHOLE_INTERFACE" "${PIHOLE_INTERFACE}"
-    addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_1" "${PIHOLE_DNS_1}"
-    addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_2" "${PIHOLE_DNS_2}"
+    addOrEditKeyValPair "${setupVars}" "SAFELOCK_INTERFACE" "${SAFELOCK_INTERFACE}"
+    addOrEditKeyValPair "${setupVars}" "SAFELOCK_DNS_1" "${SAFELOCK_DNS_1}"
+    addOrEditKeyValPair "${setupVars}" "SAFELOCK_DNS_2" "${SAFELOCK_DNS_2}"
     addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "${QUERY_LOGGING}"
     addOrEditKeyValPair "${setupVars}" "INSTALL_WEB_SERVER" "${INSTALL_WEB_SERVER}"
     addOrEditKeyValPair "${setupVars}" "INSTALL_WEB_INTERFACE" "${INSTALL_WEB_INTERFACE}"
@@ -1850,7 +1822,7 @@ finalExports() {
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
     # shellcheck source=advanced/Scripts/webpage.sh
-    source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
+    source "${SAFELOCK_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     # Look for DNS server settings which would have to be reapplied
     ProcessDNSSettings
@@ -1882,7 +1854,7 @@ installLogrotate() {
         return 2
     fi
     # Copy the file over from the local repo
-    install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+    install -D -m 644 -T "${SAFELOCK_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1926,9 +1898,9 @@ installPihole() {
     fi
 
     # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
-    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
+    if [ -f "${SAFELOCK_INSTALL_DIR}/utils.sh" ]; then
         # shellcheck disable=SC1091
-        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+        source "${SAFELOCK_INSTALL_DIR}/utils.sh"
     else
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
         exit 1
@@ -1942,7 +1914,7 @@ installPihole() {
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # do so
-        installPiholeWeb
+        installSafeLockWeb
     fi
     # Install the cron file
     installCron
@@ -2169,8 +2141,8 @@ clone_or_update_repos() {
     if [[ "${reconfigure}" == true ]]; then
         printf "  %b Performing reconfiguration, skipping download of local repos\\n" "${INFO}"
         # Reset the Core repo
-        resetRepo ${PI_HOLE_LOCAL_REPO} || \
-        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
+        resetRepo ${SAFELOCK_LOCAL_REPO} || \
+        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${SAFELOCK_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
@@ -2184,8 +2156,8 @@ clone_or_update_repos() {
     # Otherwise, a repair is happening
     else
         # so get git files for Core
-        getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
+        getGitFiles ${SAFELOCK_LOCAL_REPO} ${piholeGitUrl} || \
+        { printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${SAFELOCK_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
@@ -2509,7 +2481,7 @@ main() {
         # they are root and all is good
         printf "  %b %s\\n" "${TICK}" "${str}"
         # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
-        show_ascii_berry
+        show_ascii_safelock
         make_temporary_log
     else
         # Otherwise, they do not have enough privileges, so let the user know
@@ -2618,10 +2590,10 @@ main() {
     clone_or_update_repos
 
     # Install the Core dependencies
-    local dep_install_list=("${PIHOLE_DEPS[@]}")
+    local dep_install_list=("${SAFELOCK_DEPS[@]}")
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # And, if the setting says so, install the Web admin interface dependencies
-        dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
+        dep_install_list+=("${SAFELOCK_DEPS[@]}")
     fi
 
     # Install packages used by the actual software
