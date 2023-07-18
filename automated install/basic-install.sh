@@ -52,7 +52,7 @@ SAFELOCK_BIN_DIR="/usr/local/bin"
 SAFELOCK_BLOCKPAGE_DIR="${webroot}/pihole"
 FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 if [ -z "$useUpdateVars" ]; then
-
+    useUpdateVars=false
 fi
 adlistFile="/etc/pihole/adlists.list"
 adlistFile="/etc/pihole/adlists.list"
