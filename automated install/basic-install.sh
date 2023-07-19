@@ -41,7 +41,7 @@ webroot="/var/www/html"
 # Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
 webInterfaceGitUrl="https://github.com/unpluggedREVAN/Safelock-Interface-Test.git"
 webInterfaceDir="${webroot}/admin"
-safelockGitUrl="https://github.com/pi-hole/pi-hole.git"
+safelockGitUrl="https://github.com/OpenLock20/Public-Master-Test.git"
 SAFELOCK_LOCAL_REPO="/etc/.pihole"
 
 SAFELOCK_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
